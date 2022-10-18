@@ -162,17 +162,10 @@ uint16_t aca_setpoint(uint16_t ui16_time_ticks_between_pas_interrupt, uint16_t s
 	if (brake_is_set()) {
 		
 		controll_state_temp = 255;
-		//Current target based on regen assist level
-		if ((ui16_aca_flags & DIGITAL_REGEN) == DIGITAL_REGEN) {
 
-			ui8_temp = ui8_a_s_assistlevels[ui8_assistlevel_global >> 4];
-			controll_state_temp -= 1;
-
-			//Current target based on linear input on pad X4
-		} else {
-			ui8_temp = map(ui16_x4_value >> 2, ui8_throttle_min_range, ui8_throttle_max_range, 0, 100); //map regen throttle to limits
-			controll_state_temp -= 2;
-		}
+		//Current target based on linear input on pad X4
+		ui8_temp = map(ui16_x4_value >> 2, ui8_throttle_min_range, ui8_throttle_max_range, 0, 100); //map regen throttle to limits
+		controll_state_temp -= 2;
 		float_temp = (float) ui8_temp * (float) (ui16_regen_current_max_value) / 100.0;
 
 		//Current target gets ramped down with speed
