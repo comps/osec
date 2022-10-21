@@ -20,6 +20,7 @@
 // Brake signal
 void EXTI_PORTA_IRQHandler(void) __interrupt(EXTI_PORTA_IRQHANDLER)
 {
+#if 0
   if (brake_is_set())
   {
     //brake_coast_enable ();
@@ -31,6 +32,7 @@ void EXTI_PORTA_IRQHandler(void) __interrupt(EXTI_PORTA_IRQHANDLER)
     //pwm_set_duty_cycle (0);
     //stop_cruise_control ();
   }
+#endif
 }
 
 void brake_init (void)
