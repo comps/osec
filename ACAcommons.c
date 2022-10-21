@@ -25,6 +25,7 @@
 #include "adc.h"
 #include "ACAcommons.h"
 #include "ACAcontrollerState.h"
+#include "brake.h"
 
 static uint8_t ui8_temp;
 
@@ -312,7 +313,7 @@ void updateSlowLoopStates(void) {
 	
 	if (((ui16_aca_flags & BRAKE_DISABLES_OFFROAD) == BRAKE_DISABLES_OFFROAD) && (ui8_offroad_state > 4)) {
 		// if disabling is enabled :)
-		if (!GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN)) {
+		if (brake_is_set()) {
 			ui8_offroad_counter++;
 			if (ui8_offroad_counter == 255) {//disable on pressing brake for 5 seconds
 				ui8_offroad_state = 0;
@@ -328,43 +329,43 @@ void updateSlowLoopStates(void) {
 		return;
 	}
 
-	if (ui8_offroad_state == 0 && !GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN)) {//first step, brake on.
+	if (ui8_offroad_state == 0 && brake_is_set()) {//first step, brake on.
 		ui8_offroad_state = 1;
 	} else if (ui8_offroad_state == 1) {//second step, make sure the brake is hold according to definded time
 		ui8_offroad_counter++;
-		if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter < MORSE_TIME_1) {//brake is released too early
+		if (!brake_is_set() && ui8_offroad_counter < MORSE_TIME_1) {//brake is released too early
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
-		} else if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_1 + MORSE_TOLERANCE) {//brake is released according to cheatcode
+		} else if (!brake_is_set() && ui8_offroad_counter > MORSE_TIME_1 + MORSE_TOLERANCE) {//brake is released according to cheatcode
 			ui8_offroad_state = 2;
 			ui8_offroad_counter = 0;
-		} else if (!GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_1 + MORSE_TOLERANCE) {//brake is released too late
+		} else if (brake_is_set() && ui8_offroad_counter > MORSE_TIME_1 + MORSE_TOLERANCE) {//brake is released too late
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
 		}
 	} else if (ui8_offroad_state == 2) {//third step, make sure the brake is released according to definded time
 		ui8_offroad_counter++;
-		if (!GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter < MORSE_TIME_2) { //brake is hold too early
+		if (brake_is_set() && ui8_offroad_counter < MORSE_TIME_2) { //brake is hold too early
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
-		} else if (!GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_2 + MORSE_TOLERANCE) {//brake is hold according to cheatcode
+		} else if (brake_is_set() && ui8_offroad_counter > MORSE_TIME_2 + MORSE_TOLERANCE) {//brake is hold according to cheatcode
 			ui8_offroad_state = 3;
 			ui8_offroad_counter = 0;
 
-		} else if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_2 + MORSE_TOLERANCE) {//brake is hold too late
+		} else if (!brake_is_set() && ui8_offroad_counter > MORSE_TIME_2 + MORSE_TOLERANCE) {//brake is hold too late
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
 		}
 	} else if (ui8_offroad_state == 3) {//second step, make sure the brake is hold according to definded time
 		ui8_offroad_counter++;
-		if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter < MORSE_TIME_3) {//brake is released too early
+		if (!brake_is_set() && ui8_offroad_counter < MORSE_TIME_3) {//brake is released too early
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
-		} else if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_3 + MORSE_TOLERANCE) {//brake is released according to cheatcode
+		} else if (!brake_is_set() && ui8_offroad_counter > MORSE_TIME_3 + MORSE_TOLERANCE) {//brake is released according to cheatcode
 			ui8_offroad_state = 4;
 			ui8_offroad_counter = 0;
 
-		} else if (!GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) && ui8_offroad_counter > MORSE_TIME_3 + MORSE_TOLERANCE) {//brake is released too late
+		} else if (brake_is_set() && ui8_offroad_counter > MORSE_TIME_3 + MORSE_TOLERANCE) {//brake is released too late
 			ui8_offroad_state = 0;
 			ui8_offroad_counter = 0;
 		}
