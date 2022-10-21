@@ -1,4 +1,5 @@
 main.hex
+optionbytes.hex
 **/*~
 *.asm
 *.bin
