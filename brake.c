@@ -49,7 +49,7 @@ void brake_init (void)
 
 BitStatus brake_is_set (void)
 {
-  if ((ui16_x4_value >> 2) > (uint16_t)ui8_throttle_min_range)
+  if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) == 0)
     return 1;
   else
     return 0;

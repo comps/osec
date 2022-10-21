@@ -10,7 +10,6 @@
 #define _BRAKE_H
 
 #include "main.h"
-#include "ACAcontrollerState.h"
 
 void brake_init (void);
 BitStatus brake_is_set (void);
