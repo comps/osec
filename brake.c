@@ -16,6 +16,7 @@
 #include "cruise_control.h"
 #include "motor.h"
 #include "pwm.h"
+#include "ACAcontrollerState.h"
 
 // Brake signal
 void EXTI_PORTA_IRQHandler(void) __interrupt(EXTI_PORTA_IRQHANDLER)
@@ -49,10 +50,9 @@ void brake_init (void)
 
 BitStatus brake_is_set (void)
 {
-  if (GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN) == 0)
-    return 1;
-  else
-    return 0;
+  if ((ui16_x4_value >> 2) > (uint16_t)ui8_throttle_min_range)
+      return 1;
+  return !GPIO_ReadInputPin(BRAKE__PORT, BRAKE__PIN);
 }
 
 void brake_coast_enable (void)
