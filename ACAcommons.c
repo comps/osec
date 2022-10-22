@@ -213,7 +213,9 @@ void updateRequestedTorque(void) {
             ui16_sum_torque /= NUMBER_OF_PAS_MAGS;
         }
 
-        if ((ui8_adc_read_throttle() < ui8_adc_read_throttle_mem + 10) && (ui8_adc_read_throttle() > ui8_adc_read_throttle_mem - 10)){
+        // re-use DC_STATIC_ZERO as a toggle for cruise control
+        if ((ui16_aca_experimental_flags & DC_STATIC_ZERO) == DC_STATIC_ZERO &&
+            (ui8_adc_read_throttle() < ui8_adc_read_throttle_mem + 10) && (ui8_adc_read_throttle() > ui8_adc_read_throttle_mem - 10)) {
             ui32_cruise_counter++;
             if (ui32_cruise_counter > 1000){
                 ui8_cruise_state = 1;

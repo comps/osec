@@ -306,10 +306,7 @@ uint16_t aca_setpoint(uint16_t ui16_time_ticks_between_pas_interrupt, uint16_t s
 			uint32_current_target*=ui8_temp/ui8_BatteryVoltage;
 		}
 		
-		if ((ui16_aca_experimental_flags & DC_STATIC_ZERO) == DC_STATIC_ZERO) {
-			ui32_dutycycle = 0;
-			controll_state_temp += 256;
-		}else if (!checkUnderVoltageOverride() && !checkMaxErpsOverride()){
+		if (!checkUnderVoltageOverride() && !checkMaxErpsOverride()){
 
 			if (ui8_walk_assist) uint32_current_target = 10 + ui16_current_cal_b;
 			//send current target to PI-controller
