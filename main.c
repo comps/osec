@@ -19,7 +19,6 @@
 #include "uart.h"
 #include "adc.h"
 #include "brake.h"
-#include "cruise_control.h"
 #include "timers.h"
 #include "pwm.h"
 #include "PAS.h"
@@ -164,11 +163,6 @@ int main(void) {
 			updateX4();
 			updateLight();
 			ui16_setpoint = (uint16_t) aca_setpoint(ui16_time_ticks_between_pas_interrupt, ui16_setpoint); //update setpoint
-
-			//#define DO_CRUISE_CONTROL 1
-#if DO_CRUISE_CONTROL == 1
-			ui16_setpoint = cruise_control(ui16_setpoint);
-#endif
 
 			pwm_set_duty_cycle((uint8_t) ui16_setpoint);
 

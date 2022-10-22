@@ -28,6 +28,9 @@
 #include "brake.h"
 
 static uint8_t ui8_temp;
+uint32_t ui32_cruise_counter = 0;
+uint8_t ui8_adc_read_throttle_mem = 0;
+uint8_t ui8_cruise_state = 0;
 
 uint8_t float2int(float in, float maxRange) {
 	uint16_t result;
@@ -192,24 +195,72 @@ void updateLight(void) {
 
 
 void updateRequestedTorque(void) {
+    // cruise code stolen from
+    // https://endless-sphere.com/forums/viewtopic.php?f=30&t=87870&p=1691567&hilit=cruise#p1691567
+    if (ui8_cruise_state == 0)
+    {
+        ui16_momentary_throttle = (uint16_t) map(ui8_adc_read_throttle(), ADC_THROTTLE_MIN_VALUE, ADC_THROTTLE_MAX_VALUE, 0, SETPOINT_MAX_VALUE); //read in recent throttle value for throttle override
+        if (((ui16_aca_flags & TQ_SENSOR_MODE) != TQ_SENSOR_MODE)) {
+            ui16_throttle_accumulated -= ui16_throttle_accumulated >> 4;
+            ui16_throttle_accumulated += ui8_adc_read_throttle();
+            ui8_temp = ui16_throttle_accumulated >> 4; //read in value from adc
+            ui16_sum_throttle = (uint8_t) map(ui8_temp, ui8_throttle_min_range, ui8_throttle_max_range, 0, SETPOINT_MAX_VALUE); //map throttle to limits
+        } else {
+            ui16_sum_torque = 0;
+            for (ui8_temp = 0; ui8_temp < NUMBER_OF_PAS_MAGS; ui8_temp++) { // sum up array content
+                ui16_sum_torque += ui16_torque[ui8_temp];
+            }
+            ui16_sum_torque /= NUMBER_OF_PAS_MAGS;
+        }
 
-	ui16_momentary_throttle = (uint16_t) map(ui8_adc_read_throttle(), ADC_THROTTLE_MIN_VALUE, ADC_THROTTLE_MAX_VALUE, 0, SETPOINT_MAX_VALUE); //read in recent throttle value for throttle override
-
-	if (((ui16_aca_flags & TQ_SENSOR_MODE) != TQ_SENSOR_MODE)) {
-		ui16_throttle_accumulated -= ui16_throttle_accumulated >> 4;
-		ui16_throttle_accumulated += ui8_adc_read_throttle();
-		ui8_temp = ui16_throttle_accumulated >> 4; //read in value from adc
-		ui16_sum_throttle = (uint8_t) map(ui8_temp, ui8_throttle_min_range, ui8_throttle_max_range, 0, SETPOINT_MAX_VALUE); //map throttle to limits
-	} else {
-
-		ui16_sum_torque = 0;
-		for (ui8_temp = 0; ui8_temp < NUMBER_OF_PAS_MAGS; ui8_temp++) { // sum up array content
-			ui16_sum_torque += ui16_torque[ui8_temp];
-		}
-
-		ui16_sum_torque /= NUMBER_OF_PAS_MAGS;
-
-	}
+        if ((ui8_adc_read_throttle() < ui8_adc_read_throttle_mem + 10) && (ui8_adc_read_throttle() > ui8_adc_read_throttle_mem - 10)){
+            ui32_cruise_counter++;
+            if (ui32_cruise_counter > 1000){
+                ui8_cruise_state = 1;
+                ui32_cruise_counter = 0;
+            }
+        }
+        else{
+            ui32_cruise_counter = 0;
+            ui8_adc_read_throttle_mem=ui8_adc_read_throttle();
+        }
+    }
+    else if (ui8_cruise_state == 1)
+    {
+        ui16_momentary_throttle = (uint16_t) map(ui8_adc_read_throttle_mem, ADC_THROTTLE_MIN_VALUE, ADC_THROTTLE_MAX_VALUE, 0, SETPOINT_MAX_VALUE); //read in recent throttle value for throttle override
+        if (((ui16_aca_flags & TQ_SENSOR_MODE) != TQ_SENSOR_MODE)) {
+            ui16_throttle_accumulated -= ui16_throttle_accumulated >> 4;
+            ui16_throttle_accumulated += ui8_adc_read_throttle_mem;
+            ui8_temp = ui16_throttle_accumulated >> 4; //read in value from adc
+            ui16_sum_throttle = (uint8_t) map(ui8_temp, ui8_throttle_min_range, ui8_throttle_max_range, 0, SETPOINT_MAX_VALUE); //map throttle to limits
+        } else {
+            ui16_sum_torque = 0;
+            for (ui8_temp = 0; ui8_temp < NUMBER_OF_PAS_MAGS; ui8_temp++) { // sum up array content
+                ui16_sum_torque += ui16_torque[ui8_temp];
+            }
+            ui16_sum_torque /= NUMBER_OF_PAS_MAGS;
+        }
+        if (brake_is_set()) {ui8_cruise_state = 0; }
+        else if (ui8_adc_read_throttle() < ADC_THROTTLE_MIN_VALUE + 10) {ui8_cruise_state = 2; }
+    }
+    else if (ui8_cruise_state == 2)
+    {
+        ui16_momentary_throttle = (uint16_t) map(ui8_adc_read_throttle_mem, ADC_THROTTLE_MIN_VALUE, ADC_THROTTLE_MAX_VALUE, 0, SETPOINT_MAX_VALUE); //read in recent throttle value for throttle override
+        if (((ui16_aca_flags & TQ_SENSOR_MODE) != TQ_SENSOR_MODE)) {
+            ui16_throttle_accumulated -= ui16_throttle_accumulated >> 4;
+            ui16_throttle_accumulated += ui8_adc_read_throttle_mem;
+            ui8_temp = ui16_throttle_accumulated >> 4; //read in value from adc
+            ui16_sum_throttle = (uint8_t) map(ui8_temp, ui8_throttle_min_range, ui8_throttle_max_range, 0, SETPOINT_MAX_VALUE); //map throttle to limits
+        } else {
+            ui16_sum_torque = 0;
+            for (ui8_temp = 0; ui8_temp < NUMBER_OF_PAS_MAGS; ui8_temp++) { // sum up array content
+                ui16_sum_torque += ui16_torque[ui8_temp];
+            }
+            ui16_sum_torque /= NUMBER_OF_PAS_MAGS;
+        }
+        if (brake_is_set()) {ui8_cruise_state = 0; }
+        else if (ui8_adc_read_throttle() > ADC_THROTTLE_MIN_VALUE + 20) {ui8_cruise_state = 0; }
+    }
 }
 
 void checkPasInActivity(void) {
